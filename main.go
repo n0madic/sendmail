@@ -28,6 +28,11 @@ func main() {
 		log.SetLevel(log.WarnLevel)
 	}
 
+	stat, _ := os.Stdin.Stat()
+	if (stat.Mode() & os.ModeCharDevice) != 0 {
+		log.Fatal("no stdin input")
+	}
+
 	body, err := ioutil.ReadAll(os.Stdin)
 	if err != nil {
 		log.Fatal(err)

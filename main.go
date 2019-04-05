@@ -55,23 +55,49 @@ func main() {
 		log.Fatal(err)
 	}
 
+	rcpt := func(field string) []*mail.Address {
+		if recipient, err := msg.Header.AddressList(field); err == nil {
+			return recipient
+		}
+		return nil
+	}
+	recipients = append(recipients, rcpt("Cc")...)
+	recipients = append(recipients, rcpt("Bcc")...)
+
+	mapMX := make(map[string][]string)
 	for _, recipient := range recipients {
 		components := strings.Split(recipient.Address, "@")
-		mxrecords, err := net.LookupMX(components[1])
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, mx := range mxrecords {
-			host := strings.TrimSuffix(mx.Host, ".")
-			log.Infof("Connect to %s", host)
+		mapMX[components[1]] = append(mapMX[components[1]], recipient.Address)
+	}
 
-			err := smtp.SendMail(host+":25", nil, sender, []string{recipient.Address}, bytes.NewReader(body))
-			if err == nil {
-				log.Info("Send mail OK")
-				os.Exit(0)
-			}
+	var successCount int
+	for domain, addresses := range mapMX {
+		log.Infof("Send mail to %s", addresses)
+		mxrecords, err := net.LookupMX(domain)
+		if err != nil {
 			log.Warn(err)
+		} else {
+			for _, mx := range mxrecords {
+				host := strings.TrimSuffix(mx.Host, ".")
+				log.Infof("Connect with %s", host)
+				err := smtp.SendMail(host+":25", nil,
+					sender,
+					addresses,
+					bytes.NewReader(body))
+				if err == nil {
+					log.Info("Send mail OK")
+					successCount++
+				} else {
+					log.Warn(err)
+				}
+			}
 		}
 	}
-	log.Fatal("Could not send message")
+
+	if successCount == 0 {
+		log.Fatal("Failed to send all messages")
+	}
+	if successCount != len(mapMX) {
+		log.Fatal("Not all messages were able to send")
+	}
 }

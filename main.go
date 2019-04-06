@@ -64,40 +64,48 @@ func main() {
 	recipients = append(recipients, rcpt("Cc")...)
 	recipients = append(recipients, rcpt("Bcc")...)
 
-	mapMX := make(map[string][]string)
+	mapDomains := make(map[string][]string)
 	for _, recipient := range recipients {
 		components := strings.Split(recipient.Address, "@")
-		mapMX[components[1]] = append(mapMX[components[1]], recipient.Address)
+		mapDomains[components[1]] = append(mapDomains[components[1]], recipient.Address)
 	}
 
 	var successCount int
-	for domain, addresses := range mapMX {
-		log.Infof("Send mail to %s", addresses)
+	for domain, addresses := range mapDomains {
+		rcpts := strings.Join(addresses, ",")
 		mxrecords, err := net.LookupMX(domain)
 		if err != nil {
-			log.Warn(err)
+			log.WithField("recipients", rcpts).Warn(err)
 		} else {
 			for _, mx := range mxrecords {
 				host := strings.TrimSuffix(mx.Host, ".")
-				log.Infof("Connect with %s", host)
 				err := smtp.SendMail(host+":25", nil,
 					sender,
 					addresses,
 					bytes.NewReader(body))
 				if err == nil {
-					log.Info("Send mail OK")
+					log.WithFields(log.Fields{
+						"host":       host,
+						"recipients": rcpts,
+					}).Info("Send mail OK")
 					successCount++
 				} else {
-					log.Warn(err)
+					log.WithFields(log.Fields{
+						"host":       host,
+						"recipients": rcpts,
+					}).Warn(err)
 				}
 			}
 		}
 	}
 
 	if successCount == 0 {
-		log.Fatal("Failed to send all messages")
+		log.Fatal("Failed to deliver to all recipients")
 	}
-	if successCount != len(mapMX) {
-		log.Fatal("Not all messages were able to send")
+	if successCount != len(mapDomains) {
+		log.WithFields(log.Fields{
+			"total":   len(mapDomains),
+			"success": successCount,
+		}).Fatal("Failed to deliver to some recipients")
 	}
 }

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/base64"
 	"flag"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/mail"
 	"os"
@@ -16,14 +18,22 @@ import (
 )
 
 var (
-	sender  string
-	verbose bool
-	wg      sync.WaitGroup
+	body        []byte
+	extractRcpt bool
+	ignoreDot   bool
+	recipients  []*mail.Address
+	sender      string
+	subject     string
+	verbose     bool
+	wg          sync.WaitGroup
 )
 
 func main() {
-	flag.StringVar(&sender, "f", "", "Set the envelope sender address.")
+	flag.BoolVar(&ignoreDot, "i", false, "When reading a message from standard input, don't treat a line with only a . character as the end of input.")
+	flag.BoolVar(&extractRcpt, "t", false, "Extract recipients from message headers. This requires that no recipients be specified on the command line.")
 	flag.BoolVar(&verbose, "v", false, "Enable verbose logging for debugging purposes.")
+	flag.StringVar(&sender, "f", "", "Set the envelope sender address.")
+	flag.StringVar(&subject, "s", "", "Specify subject on command line.")
 
 	flag.Parse()
 
@@ -36,36 +46,77 @@ func main() {
 		log.Fatal("no stdin input")
 	}
 
-	body, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Fatal(err)
+	bio := bufio.NewReader(os.Stdin)
+	for {
+		line, err := bio.ReadBytes('\n')
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !ignoreDot && bytes.Equal(bytes.Trim(line, "\n"), []byte(".")) {
+			break
+		}
+		body = append(body, line...)
+	}
+	if len(body) == 0 {
+		log.Fatal("Empty message body")
 	}
 
 	msg, err := mail.ReadMessage(bytes.NewReader(body))
 	if err != nil {
-		log.Fatal(err)
+		if sender != "" && flag.NArg() > 0 {
+			log.Info(err)
+			buf := bytes.NewBuffer(nil)
+			buf.WriteString("From: " + sender + "\r\n")
+			buf.WriteString("To: " + strings.Join(flag.Args(), ",") + "\r\n")
+			if subject != "" {
+				var coder = base64.StdEncoding
+				buf.WriteString("Subject: =?UTF-8?B?" +
+					coder.EncodeToString([]byte(subject)) +
+					"?=\r\n")
+			}
+			buf.WriteString("\r\n")
+			buf.Write(body)
+			buf.WriteString("\r\n")
+			msg, err = mail.ReadMessage(buf)
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	if sender == "" {
 		sender = msg.Header.Get("From")
 		if sender == "" {
-			log.Fatal("Header 'From' not in the message")
+			log.Warn("No header 'From' in the message")
 		}
 	}
 
-	recipients, err := msg.Header.AddressList("To")
-	if err != nil {
-		log.Fatal(err)
+	if flag.NArg() > 0 {
+		recipient, err := mail.ParseAddressList(strings.Join(flag.Args(), ","))
+		if err == nil {
+			recipients = recipient
+		}
+	} else if extractRcpt {
+		recipients, err = msg.Header.AddressList("To")
+		if err != nil {
+			log.Fatal(err)
+		}
+		rcpt := func(field string) []*mail.Address {
+			if recipient, err := msg.Header.AddressList(field); err == nil {
+				return recipient
+			}
+			return nil
+		}
+		recipients = append(recipients, rcpt("Cc")...)
+		recipients = append(recipients, rcpt("Bcc")...)
 	}
 
-	rcpt := func(field string) []*mail.Address {
-		if recipient, err := msg.Header.AddressList(field); err == nil {
-			return recipient
-		}
-		return nil
+	if len(recipients) == 0 {
+		log.Fatal("No recipients listed")
 	}
-	recipients = append(recipients, rcpt("Cc")...)
-	recipients = append(recipients, rcpt("Bcc")...)
 
 	mapDomains := make(map[string][]string)
 	for _, recipient := range recipients {
@@ -91,13 +142,13 @@ func main() {
 						bytes.NewReader(body))
 					if err == nil {
 						log.WithFields(log.Fields{
-							"host":       host,
+							"mx":         host,
 							"recipients": rcpts,
 						}).Info("Send mail OK")
 						atomic.AddInt32(successCount, 1)
 					} else {
 						log.WithFields(log.Fields{
-							"host":       host,
+							"mx":         host,
 							"recipients": rcpts,
 						}).Warn(err)
 					}

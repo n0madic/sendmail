@@ -8,6 +8,8 @@ import (
 	"net/mail"
 	"os"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/emersion/go-smtp"
 	log "github.com/sirupsen/logrus"
@@ -16,6 +18,7 @@ import (
 var (
 	sender  string
 	verbose bool
+	wg      sync.WaitGroup
 )
 
 func main() {
@@ -70,42 +73,47 @@ func main() {
 		mapDomains[components[1]] = append(mapDomains[components[1]], recipient.Address)
 	}
 
-	var successCount int
+	var successCount = new(int32)
 	for domain, addresses := range mapDomains {
 		rcpts := strings.Join(addresses, ",")
-		mxrecords, err := net.LookupMX(domain)
-		if err != nil {
-			log.WithField("recipients", rcpts).Warn(err)
-		} else {
-			for _, mx := range mxrecords {
-				host := strings.TrimSuffix(mx.Host, ".")
-				err := smtp.SendMail(host+":25", nil,
-					sender,
-					addresses,
-					bytes.NewReader(body))
-				if err == nil {
-					log.WithFields(log.Fields{
-						"host":       host,
-						"recipients": rcpts,
-					}).Info("Send mail OK")
-					successCount++
-				} else {
-					log.WithFields(log.Fields{
-						"host":       host,
-						"recipients": rcpts,
-					}).Warn(err)
+		wg.Add(1)
+		go func(domain string, addresses []string) {
+			defer wg.Done()
+			mxrecords, err := net.LookupMX(domain)
+			if err != nil {
+				log.WithField("recipients", rcpts).Warn(err)
+			} else {
+				for _, mx := range mxrecords {
+					host := strings.TrimSuffix(mx.Host, ".")
+					err := smtp.SendMail(host+":25", nil,
+						sender,
+						addresses,
+						bytes.NewReader(body))
+					if err == nil {
+						log.WithFields(log.Fields{
+							"host":       host,
+							"recipients": rcpts,
+						}).Info("Send mail OK")
+						atomic.AddInt32(successCount, 1)
+					} else {
+						log.WithFields(log.Fields{
+							"host":       host,
+							"recipients": rcpts,
+						}).Warn(err)
+					}
 				}
 			}
-		}
+		}(domain, addresses)
 	}
+	wg.Wait()
 
-	if successCount == 0 {
+	if *successCount == 0 {
 		log.Fatal("Failed to deliver to all recipients")
 	}
-	if successCount != len(mapDomains) {
+	if *successCount != int32(len(mapDomains)) {
 		log.WithFields(log.Fields{
 			"total":   len(mapDomains),
-			"success": successCount,
+			"success": *successCount,
 		}).Fatal("Failed to deliver to some recipients")
 	}
 }

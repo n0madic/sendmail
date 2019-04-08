@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/mail"
 	"os"
+	"os/user"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -91,6 +92,18 @@ func main() {
 		sender = msg.Header.Get("From")
 		if sender == "" {
 			log.Warn("No header 'From' in the message")
+			user, err := user.Current()
+			if err != nil {
+				log.Warn(err)
+			} else {
+				hostname, err := os.Hostname()
+				if err != nil {
+					log.Warn(err)
+				} else {
+					sender = user.Username + "@" + hostname
+					log.Info("Use <" + sender + "> as sender address")
+				}
+			}
 		}
 	}
 
@@ -146,6 +159,7 @@ func main() {
 							"recipients": rcpts,
 						}).Info("Send mail OK")
 						atomic.AddInt32(successCount, 1)
+						break
 					} else {
 						log.WithFields(log.Fields{
 							"mx":         host,

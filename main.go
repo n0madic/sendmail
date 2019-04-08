@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"io"
 	"net"
@@ -67,28 +68,18 @@ func main() {
 
 	msg, err := mail.ReadMessage(bytes.NewReader(body))
 	if err != nil {
-		if sender != "" && flag.NArg() > 0 {
+		if flag.NArg() > 0 {
 			log.Info(err)
-			buf := bytes.NewBuffer(nil)
-			buf.WriteString("From: " + sender + "\r\n")
-			buf.WriteString("To: " + strings.Join(flag.Args(), ",") + "\r\n")
-			if subject != "" {
-				var coder = base64.StdEncoding
-				buf.WriteString("Subject: =?UTF-8?B?" +
-					coder.EncodeToString([]byte(subject)) +
-					"?=\r\n")
-			}
-			buf.WriteString("\r\n")
-			buf.Write(body)
-			buf.WriteString("\r\n")
-			msg, err = mail.ReadMessage(buf)
+			msg, err = GetDumbMessage(sender, flag.Args(), body)
 		}
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	if sender == "" {
+	if sender != "" {
+		msg.Header["From"] = []string{sender}
+	} else {
 		sender = msg.Header.Get("From")
 		if sender == "" {
 			log.Warn("No header 'From' in the message")
@@ -102,9 +93,14 @@ func main() {
 				} else {
 					sender = user.Username + "@" + hostname
 					log.Info("Use <" + sender + "> as sender address")
+					msg.Header["From"] = []string{sender}
 				}
 			}
 		}
+	}
+
+	if subject != "" {
+		msg.Header["Subject"] = []string{"=?UTF-8?B?" + base64.StdEncoding.EncodeToString([]byte(subject))}
 	}
 
 	if flag.NArg() > 0 {
@@ -131,6 +127,11 @@ func main() {
 		log.Fatal("No recipients listed")
 	}
 
+	generatedBody, err := GenerateEnvelope(msg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	mapDomains := make(map[string][]string)
 	for _, recipient := range recipients {
 		components := strings.Split(recipient.Address, "@")
@@ -152,7 +153,7 @@ func main() {
 					err := smtp.SendMail(host+":25", nil,
 						sender,
 						addresses,
-						bytes.NewReader(body))
+						generatedBody)
 					if err == nil {
 						log.WithFields(log.Fields{
 							"mx":         host,
@@ -181,4 +182,37 @@ func main() {
 			"success": *successCount,
 		}).Fatal("Failed to deliver to some recipients")
 	}
+}
+
+// GetDumbMessage create simple mail.Message from raw data
+func GetDumbMessage(sender string, recipients []string, body []byte) (*mail.Message, error) {
+	if len(recipients) == 0 {
+		return nil, errors.New("Empty recipients list")
+	}
+	buf := bytes.NewBuffer(nil)
+	if sender != "" {
+		buf.WriteString("From: " + sender + "\r\n")
+	}
+	buf.WriteString("To: " + strings.Join(recipients, ",") + "\r\n")
+	buf.WriteString("\r\n")
+	buf.Write(body)
+	buf.WriteString("\r\n")
+	return mail.ReadMessage(buf)
+}
+
+// GenerateEnvelope create body from mail.Message
+func GenerateEnvelope(msg *mail.Message) (io.Reader, error) {
+	if len(msg.Header) == 0 {
+		return nil, errors.New("Empty header")
+	}
+	buf := bytes.NewBuffer(nil)
+	for key, value := range msg.Header {
+		buf.WriteString(key + ": " + strings.Join(value, ",") + "\r\n")
+	}
+	_, err := buf.ReadFrom(msg.Body)
+	if err != nil {
+		return nil, err
+	}
+	buf.WriteString("\r\n")
+	return buf, nil
 }

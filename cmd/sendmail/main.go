@@ -15,6 +15,8 @@ import (
 
 var (
 	body       []byte
+	httpMode   bool
+	httpBind   string
 	ignored    bool
 	ignoreDot  bool
 	recipients []*mail.Address
@@ -33,6 +35,8 @@ func main() {
 	flag.StringVar(&sender, "f", "", "Set the envelope sender address.")
 	flag.StringVar(&subject, "s", "", "Specify subject on command line.")
 
+	flag.BoolVar(&httpMode, "http", false, "Enable HTTP server mode.")
+	flag.StringVar(&httpBind, "httpBind", "localhost:8080", "TCP address to HTTP listen on.")
 	flag.BoolVar(&smtpMode, "smtp", false, "Enable SMTP server mode.")
 	flag.StringVar(&smtpBind, "smtpBind", "localhost:25", "TCP or Unix address to SMTP listen on.")
 
@@ -42,8 +46,14 @@ func main() {
 		log.SetLevel(log.WarnLevel)
 	}
 
-	if smtpMode {
-		startSMTP(smtpBind)
+	if httpMode || smtpMode {
+		if httpMode {
+			go startHTTP(httpBind)
+		}
+		if smtpMode {
+			go startSMTP(smtpBind)
+		}
+		select {}
 	} else {
 		stat, _ := os.Stdin.Stat()
 		if (stat.Mode() & os.ModeCharDevice) != 0 {

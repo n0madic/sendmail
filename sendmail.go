@@ -88,7 +88,7 @@ func NewEnvelope(sender string, recipients []string, subject string, body []byte
 		recipientsList = append(recipientsList, rcpt("Bcc")...)
 	}
 
-	if len(recipients) == 0 {
+	if len(recipientsList) == 0 {
 		return Envelope{}, errors.New("No recipients listed")
 	}
 

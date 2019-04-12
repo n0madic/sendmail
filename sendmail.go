@@ -5,16 +5,14 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"io"
 	"net"
 	"net/mail"
+	"net/smtp"
 	"os"
 	"os/user"
 	"strings"
 	"sync"
 	"sync/atomic"
-
-	smtp "github.com/emersion/go-smtp"
 )
 
 var (
@@ -203,7 +201,7 @@ func (e *Envelope) SendLikeMTA() <-chan Result {
 }
 
 // GenerateMessage create body from mail.Message
-func (e *Envelope) GenerateMessage() (io.Reader, error) {
+func (e *Envelope) GenerateMessage() ([]byte, error) {
 	if len(e.Header) == 0 {
 		return nil, errors.New("Empty header")
 	}
@@ -216,5 +214,5 @@ func (e *Envelope) GenerateMessage() (io.Reader, error) {
 		return nil, err
 	}
 	buf.WriteString("\r\n")
-	return buf, nil
+	return buf.Bytes(), nil
 }

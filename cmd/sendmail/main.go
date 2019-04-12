@@ -1,3 +1,4 @@
+// Standalone drop-in replacement for sendmail with direct send
 package main
 
 import (
@@ -79,9 +80,24 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = envelope.Send()
-		if err != nil {
-			log.Fatal(err)
+		errs := envelope.Send()
+		for result := range errs {
+			switch {
+			case result.Level > sendmail.WarnLevel:
+				log.WithFields(getLogFields(result.Fields)).Info(result.Message)
+			case result.Level == sendmail.WarnLevel:
+				log.WithFields(getLogFields(result.Fields)).Warn(result.Error)
+			case result.Level < sendmail.WarnLevel:
+				log.WithFields(getLogFields(result.Fields)).Fatal(result.Error)
+			}
 		}
 	}
+}
+
+func getLogFields(fields sendmail.Fields) log.Fields {
+	logFields := log.Fields{}
+	for k, v := range fields {
+		logFields[k] = v
+	}
+	return logFields
 }

@@ -28,10 +28,23 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, err)
 		} else {
-			err = envelope.Send()
+			errs := envelope.Send()
+			for result := range errs {
+				switch {
+				case result.Level > sendmail.WarnLevel:
+					log.WithFields(getLogFields(result.Fields)).Info(result.Message)
+					fmt.Fprint(w, "Send mail OK")
+				case result.Level == sendmail.WarnLevel:
+					log.WithFields(getLogFields(result.Fields)).Warn(result.Error)
+				case result.Level < sendmail.WarnLevel:
+					log.WithFields(getLogFields(result.Fields)).Warn(result.Error)
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprint(w, result.Error)
+				}
+			}
 		}
-		fmt.Fprint(w, err)
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, "Sorry, only POST method are supported.")

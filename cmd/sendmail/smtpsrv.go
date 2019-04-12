@@ -19,7 +19,7 @@ func (bkd *Backend) Login(state *smtp.ConnectionState, username, password string
 	return &Session{}, nil
 }
 
-// AnonymousLogin requires clients to authenticate using SMTP AUTH before sending emails
+// AnonymousLogin allowed
 func (bkd *Backend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, error) {
 	return &Session{}, nil
 }
@@ -52,8 +52,20 @@ func (s *Session) Data(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	err = envelope.Send()
-	return err
+	envelope.Send()
+	errs := envelope.Send()
+	for result := range errs {
+		switch {
+		case result.Level > sendmail.WarnLevel:
+			log.WithFields(getLogFields(result.Fields)).Info(result.Message)
+		case result.Level == sendmail.WarnLevel:
+			log.WithFields(getLogFields(result.Fields)).Warn(result.Error)
+		case result.Level < sendmail.WarnLevel:
+			log.WithFields(getLogFields(result.Fields)).Warn(result.Error)
+			return result.Error
+		}
+	}
+	return nil
 }
 
 // Reset session

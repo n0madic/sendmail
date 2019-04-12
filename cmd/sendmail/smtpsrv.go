@@ -52,7 +52,7 @@ func (s *Session) Data(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	err = envelope.SendLikeMTA()
+	err = envelope.Send()
 	return err
 }
 

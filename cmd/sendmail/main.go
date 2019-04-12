@@ -81,7 +81,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		err = envelope.SendLikeMTA()
+		err = envelope.Send()
 		if err != nil {
 			log.Fatal(err)
 		}

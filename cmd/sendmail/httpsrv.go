@@ -29,7 +29,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		} else {
-			err = envelope.SendLikeMTA()
+			err = envelope.Send()
 		}
 		fmt.Fprint(w, err)
 	} else {

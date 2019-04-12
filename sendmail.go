@@ -111,6 +111,11 @@ func GetDumbMessage(sender string, recipients []string, body []byte) (*mail.Mess
 	return mail.ReadMessage(buf)
 }
 
+// Send message
+func (e *Envelope) Send() (err error) {
+	return e.SendLikeMTA()
+}
+
 // SendLikeMTA message delivery directly, like Mail Transfer Agent
 func (e *Envelope) SendLikeMTA() (err error) {
 	generatedBody, err := e.GenerateMessage()

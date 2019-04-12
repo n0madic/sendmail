@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"flag"
 	"io"
-	"net/mail"
 	"os"
 	"sync"
 
@@ -14,18 +13,17 @@ import (
 )
 
 var (
-	body       []byte
-	httpMode   bool
-	httpBind   string
-	ignored    bool
-	ignoreDot  bool
-	recipients []*mail.Address
-	sender     string
-	smtpMode   bool
-	smtpBind   string
-	subject    string
-	verbose    bool
-	wg         sync.WaitGroup
+	body      []byte
+	httpMode  bool
+	httpBind  string
+	ignored   bool
+	ignoreDot bool
+	sender    string
+	smtpMode  bool
+	smtpBind  string
+	subject   string
+	verbose   bool
+	wg        sync.WaitGroup
 )
 
 func main() {

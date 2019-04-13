@@ -12,12 +12,12 @@ import (
 func (e *Envelope) SendLikeMTA() <-chan Result {
 	var successCount = new(int32)
 	mapDomains := make(map[string][]string)
-	results := make(chan Result, len(e.recipients))
+	results := make(chan Result, len(e.Recipients))
 	generatedBody, err := e.GenerateMessage()
 	if err != nil {
 		results <- Result{FatalLevel, err, "Generate message", nil}
 	} else {
-		for _, recipient := range e.recipients {
+		for _, recipient := range e.Recipients {
 			components := strings.Split(recipient, "@")
 			mapDomains[components[1]] = append(mapDomains[components[1]], recipient)
 		}

@@ -27,7 +27,7 @@ type Config struct {
 // Envelope of message
 type Envelope struct {
 	*mail.Message
-	recipients []string
+	Recipients []string
 }
 
 // NewEnvelope return new message envelope

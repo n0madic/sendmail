@@ -8,7 +8,7 @@ import (
 
 // SendSmarthost message delivery through an external mail server.
 func (e *Envelope) SendSmarthost(smarthost, login, password string) <-chan Result {
-	results := make(chan Result, len(e.recipients))
+	results := make(chan Result, len(e.Recipients))
 	host, _, err := net.SplitHostPort(smarthost)
 	if err != nil {
 		results <- Result{FatalLevel, err, "Smarthost", Fields{
@@ -27,14 +27,14 @@ func (e *Envelope) SendSmarthost(smarthost, login, password string) <-chan Resul
 			fields := Fields{
 				"sender":     e.Header.Get("From"),
 				"smarthost":  smarthost,
-				"recipients": strings.Join(e.recipients, ","),
+				"recipients": strings.Join(e.Recipients, ","),
 			}
 			go func() {
 				// Connect to the server, authenticate, set the sender and recipient,
 				// and send the email all in one step.
 				err := smtp.SendMail(smarthost, auth,
 					e.Header.Get("From"),
-					e.recipients,
+					e.Recipients,
 					generatedBody)
 				if err == nil {
 					results <- Result{InfoLevel, nil, "Send mail OK", fields}

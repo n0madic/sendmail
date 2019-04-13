@@ -22,3 +22,11 @@ func GetDumbMessage(sender string, recipients []string, body []byte) (*mail.Mess
 	buf.WriteString("\r\n")
 	return mail.ReadMessage(buf)
 }
+
+// AddressListToSlice convert mail.Address list to slice of strings
+func AddressListToSlice(list []*mail.Address) (slice []string) {
+	for _, rcpt := range list {
+		slice = append(slice, rcpt.Address)
+	}
+	return
+}

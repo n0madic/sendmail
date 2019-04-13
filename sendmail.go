@@ -27,7 +27,7 @@ type Config struct {
 // Envelope of message
 type Envelope struct {
 	*mail.Message
-	recipientsList []*mail.Address
+	recipients []string
 }
 
 // NewEnvelope return new message envelope
@@ -62,15 +62,15 @@ func NewEnvelope(config *Config) (Envelope, error) {
 		msg.Header["Subject"] = []string{"=?UTF-8?B?" + base64.StdEncoding.EncodeToString([]byte(config.Subject))}
 	}
 
-	var recipientsList []*mail.Address
+	var recipients []string
 
 	if len(config.Recipients) > 0 {
 		recipient, err := mail.ParseAddressList(strings.Join(config.Recipients, ","))
 		if err == nil {
-			recipientsList = recipient
+			recipients = AddressListToSlice(recipient)
 		}
 	} else {
-		recipientsList, err = msg.Header.AddressList("To")
+		recipientsList, err := msg.Header.AddressList("To")
 		if err != nil {
 			return Envelope{}, err
 		}
@@ -82,19 +82,26 @@ func NewEnvelope(config *Config) (Envelope, error) {
 		}
 		recipientsList = append(recipientsList, rcpt("Cc")...)
 		recipientsList = append(recipientsList, rcpt("Bcc")...)
+		recipients = AddressListToSlice(recipientsList)
 	}
 
-	if len(recipientsList) == 0 {
+	if len(recipients) == 0 {
 		return Envelope{}, errors.New("No recipients listed")
 	}
 
-	return Envelope{msg, recipientsList}, nil
+	return Envelope{msg, recipients}, nil
 }
 
 // Send message.
 // It returns channel for results of send.
 // After the end of sending channel are closed.
 func (e *Envelope) Send() <-chan Result {
+	smartHost := os.Getenv("SENDMAIL_SMART_HOST")
+	smartLogin := os.Getenv("SENDMAIL_SMART_LOGIN")
+	smartPassword := os.Getenv("SENDMAIL_SMART_PASSWORD")
+	if smartHost != "" {
+		return e.SendSmarthost(smartHost, smartLogin, smartPassword)
+	}
 	return e.SendLikeMTA()
 }
 

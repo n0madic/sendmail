@@ -97,10 +97,12 @@ func NewEnvelope(config *Config) (Envelope, error) {
 // After the end of sending channel are closed.
 func (e *Envelope) Send() <-chan Result {
 	smartHost := os.Getenv("SENDMAIL_SMART_HOST")
-	smartLogin := os.Getenv("SENDMAIL_SMART_LOGIN")
-	smartPassword := os.Getenv("SENDMAIL_SMART_PASSWORD")
 	if smartHost != "" {
-		return e.SendSmarthost(smartHost, smartLogin, smartPassword)
+		return e.SendSmarthost(
+			smartHost,
+			os.Getenv("SENDMAIL_SMART_LOGIN"),
+			os.Getenv("SENDMAIL_SMART_PASSWORD"),
+		)
 	}
 	return e.SendLikeMTA()
 }

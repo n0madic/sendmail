@@ -5,14 +5,11 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
-	"net"
 	"net/mail"
-	"net/smtp"
 	"os"
 	"os/user"
 	"strings"
 	"sync"
-	"sync/atomic"
 )
 
 var (
@@ -31,31 +28,6 @@ type Config struct {
 type Envelope struct {
 	*mail.Message
 	recipientsList []*mail.Address
-}
-
-// Level type of result
-type Level uint32
-
-const (
-	// FatalLevel level.
-	FatalLevel Level = iota
-	// ErrorLevel level. Logs. Used for errors that should definitely be noted.
-	ErrorLevel
-	// WarnLevel level. Non-critical entries that deserve eyes.
-	WarnLevel
-	// InfoLevel level. General operational entries about what's going on inside the application.
-	InfoLevel
-)
-
-// Fields type, used for expand information.
-type Fields map[string]interface{}
-
-// Result of send
-type Result struct {
-	Level   Level
-	Error   error
-	Message string
-	Fields  Fields
 }
 
 // NewEnvelope return new message envelope
@@ -119,93 +91,11 @@ func NewEnvelope(config *Config) (Envelope, error) {
 	return Envelope{msg, recipientsList}, nil
 }
 
-// GetDumbMessage create simple mail.Message from raw data
-func GetDumbMessage(sender string, recipients []string, body []byte) (*mail.Message, error) {
-	if len(recipients) == 0 {
-		return nil, errors.New("Empty recipients list")
-	}
-	buf := bytes.NewBuffer(nil)
-	if sender != "" {
-		buf.WriteString("From: " + sender + "\r\n")
-	}
-	buf.WriteString("To: " + strings.Join(recipients, ",") + "\r\n")
-	buf.WriteString("\r\n")
-	buf.Write(body)
-	buf.WriteString("\r\n")
-	return mail.ReadMessage(buf)
-}
-
 // Send message.
 // It returns channel for results of send.
 // After the end of sending channel are closed.
 func (e *Envelope) Send() <-chan Result {
 	return e.SendLikeMTA()
-}
-
-// SendLikeMTA message delivery directly, like Mail Transfer Agent.
-func (e *Envelope) SendLikeMTA() <-chan Result {
-	var successCount = new(int32)
-	mapDomains := make(map[string][]string)
-	results := make(chan Result, len(e.recipientsList))
-	generatedBody, err := e.GenerateMessage()
-	if err != nil {
-		results <- Result{FatalLevel, err, "Generate message", nil}
-	} else {
-		for _, recipient := range e.recipientsList {
-			components := strings.Split(recipient.Address, "@")
-			mapDomains[components[1]] = append(mapDomains[components[1]], recipient.Address)
-		}
-
-		for domain, addresses := range mapDomains {
-			rcpts := strings.Join(addresses, ",")
-			wg.Add(1)
-			go func(domain string, addresses []string) {
-				defer wg.Done()
-				mxrecords, err := net.LookupMX(domain)
-				if err != nil {
-					results <- Result{WarnLevel, err, "", Fields{
-						"sender":     e.Header.Get("From"),
-						"domain":     domain,
-						"recipients": rcpts,
-					}}
-				} else {
-					for _, mx := range mxrecords {
-						host := strings.TrimSuffix(mx.Host, ".")
-						fields := Fields{
-							"sender":     e.Header.Get("From"),
-							"mx":         host,
-							"recipients": rcpts,
-						}
-						err := smtp.SendMail(host+":25", nil,
-							e.Header.Get("From"),
-							addresses,
-							generatedBody)
-						if err == nil {
-							results <- Result{InfoLevel, nil, "Send mail OK", fields}
-							atomic.AddInt32(successCount, 1)
-							return
-						}
-						results <- Result{WarnLevel, err, "", fields}
-					}
-				}
-			}(domain, addresses)
-		}
-	}
-	go func() {
-		wg.Wait()
-		fields := Fields{
-			"sender":  e.Header.Get("From"),
-			"success": *successCount,
-			"total":   int32(len(mapDomains)),
-		}
-		if *successCount == 0 {
-			results <- Result{ErrorLevel, errors.New("Failed to deliver to all recipients"), "", fields}
-		} else if *successCount != int32(len(mapDomains)) {
-			results <- Result{ErrorLevel, errors.New("Failed to deliver to some recipients"), "", fields}
-		}
-		close(results)
-	}()
-	return results
 }
 
 // GenerateMessage create body from mail.Message

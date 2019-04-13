@@ -7,14 +7,12 @@ import (
 	"flag"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/n0madic/sendmail"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	body      []byte
 	httpMode  bool
 	httpBind  string
 	ignored   bool
@@ -24,7 +22,6 @@ var (
 	smtpBind  string
 	subject   string
 	verbose   bool
-	wg        sync.WaitGroup
 )
 
 func main() {
@@ -59,6 +56,7 @@ func main() {
 			log.Fatal("no stdin input")
 		}
 
+		var body []byte
 		bio := bufio.NewReader(os.Stdin)
 		for {
 			line, err := bio.ReadBytes('\n')
@@ -76,7 +74,12 @@ func main() {
 		if len(body) == 0 {
 			log.Fatal("Empty message body")
 		}
-		envelope, err := sendmail.NewEnvelope(sender, flag.Args(), subject, body)
+		envelope, err := sendmail.NewEnvelope(&sendmail.Config{
+			Sender:     sender,
+			Recipients: flag.Args(),
+			Subject:    subject,
+			Body:       body,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}

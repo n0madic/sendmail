@@ -48,7 +48,11 @@ func (s *Session) Data(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	envelope, err := sendmail.NewEnvelope(s.From, s.To, "", body)
+	envelope, err := sendmail.NewEnvelope(&sendmail.Config{
+		Sender:     s.From,
+		Recipients: s.To,
+		Body:       body,
+	})
 	if err != nil {
 		return err
 	}

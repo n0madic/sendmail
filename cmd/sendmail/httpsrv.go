@@ -21,11 +21,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("to") != "" {
 			recipients = strings.Split(r.URL.Query().Get("to"), ",")
 		}
-		envelope, err := sendmail.NewEnvelope(
-			r.URL.Query().Get("from"),
-			recipients,
-			r.URL.Query().Get("subject"),
-			body)
+		envelope, err := sendmail.NewEnvelope(&sendmail.Config{
+			Sender:     r.URL.Query().Get("from"),
+			Recipients: recipients,
+			Subject:    r.URL.Query().Get("subject"),
+			Body:       body,
+		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, err)

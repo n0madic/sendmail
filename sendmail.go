@@ -19,6 +19,14 @@ var (
 	wg sync.WaitGroup
 )
 
+// Config of envelope
+type Config struct {
+	Sender     string
+	Recipients []string
+	Subject    string
+	Body       []byte
+}
+
 // Envelope of message
 type Envelope struct {
 	*mail.Message
@@ -51,41 +59,41 @@ type Result struct {
 }
 
 // NewEnvelope return new message envelope
-func NewEnvelope(sender string, recipients []string, subject string, body []byte) (Envelope, error) {
-	msg, err := mail.ReadMessage(bytes.NewReader(body))
+func NewEnvelope(config *Config) (Envelope, error) {
+	msg, err := mail.ReadMessage(bytes.NewReader(config.Body))
 	if err != nil {
-		if len(recipients) > 0 {
-			msg, err = GetDumbMessage(sender, recipients, body)
+		if len(config.Recipients) > 0 {
+			msg, err = GetDumbMessage(config.Sender, config.Recipients, config.Body)
 		}
 		if err != nil {
 			return Envelope{}, err
 		}
 	}
 
-	if sender != "" {
-		msg.Header["From"] = []string{sender}
+	if config.Sender != "" {
+		msg.Header["From"] = []string{config.Sender}
 	} else {
-		sender = msg.Header.Get("From")
-		if sender == "" {
+		config.Sender = msg.Header.Get("From")
+		if config.Sender == "" {
 			user, err := user.Current()
 			if err == nil {
 				hostname, err := os.Hostname()
 				if err == nil {
-					sender = user.Username + "@" + hostname
-					msg.Header["From"] = []string{sender}
+					config.Sender = user.Username + "@" + hostname
+					msg.Header["From"] = []string{config.Sender}
 				}
 			}
 		}
 	}
 
-	if subject != "" {
-		msg.Header["Subject"] = []string{"=?UTF-8?B?" + base64.StdEncoding.EncodeToString([]byte(subject))}
+	if config.Subject != "" {
+		msg.Header["Subject"] = []string{"=?UTF-8?B?" + base64.StdEncoding.EncodeToString([]byte(config.Subject))}
 	}
 
 	var recipientsList []*mail.Address
 
-	if len(recipients) > 0 {
-		recipient, err := mail.ParseAddressList(strings.Join(recipients, ","))
+	if len(config.Recipients) > 0 {
+		recipient, err := mail.ParseAddressList(strings.Join(config.Recipients, ","))
 		if err == nil {
 			recipientsList = recipient
 		}

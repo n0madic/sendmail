@@ -18,8 +18,8 @@ func (e *Envelope) SendLikeMTA() <-chan Result {
 		results <- Result{FatalLevel, err, "Generate message", nil}
 	} else {
 		for _, recipient := range e.Recipients {
-			components := strings.Split(recipient, "@")
-			mapDomains[components[1]] = append(mapDomains[components[1]], recipient)
+			domain := GetDomainFromAddress(recipient)
+			mapDomains[domain] = append(mapDomains[domain], recipient)
 		}
 
 		for domain, addresses := range mapDomains {

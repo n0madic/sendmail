@@ -12,6 +12,12 @@ import (
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		if httpToken != "" && r.Header.Get("Token") != httpToken {
+			w.WriteHeader(http.StatusUnauthorized)
+			log.Errorf("Attempt to unauthorized send with token %s", r.Header.Get("Token"))
+			fmt.Fprint(w, "Unauthorized")
+			return
+		}
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -31,6 +37,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, err)
 		} else {
+			senderDomain := sendmail.GetDomainFromAddress(envelope.Header["From"][0])
+			if len(smtpDomains) > 0 && !smtpDomains.Contains(senderDomain) {
+				w.WriteHeader(http.StatusUnauthorized)
+				log.Errorf("Attempt to unauthorized send with domain %s", senderDomain)
+				fmt.Fprint(w, "Unauthorized sender domain")
+				return
+			}
 			errs := envelope.Send()
 			for result := range errs {
 				switch {

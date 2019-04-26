@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -32,6 +33,11 @@ type Session struct {
 
 // Mail save sender
 func (s *Session) Mail(from string) error {
+	senderDomain := sendmail.GetDomainFromAddress(from)
+	if len(smtpDomains) > 0 && !smtpDomains.Contains(senderDomain) {
+		log.Errorf("Attempt to unauthorized send with domain %s", senderDomain)
+		return fmt.Errorf("Unauthorized sender domain %s", senderDomain)
+	}
 	s.From = from
 	return nil
 }

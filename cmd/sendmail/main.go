@@ -7,21 +7,44 @@ import (
 	"flag"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/n0madic/sendmail"
 	log "github.com/sirupsen/logrus"
 )
 
+type arrayDomains []string
+
+func (d *arrayDomains) String() string {
+	return strings.Join(*d, ",")
+}
+
+func (d *arrayDomains) Set(value string) error {
+	*d = append(*d, value)
+	return nil
+}
+
+func (d *arrayDomains) Contains(str string) bool {
+	for _, domain := range *d {
+		if domain == str {
+			return true
+		}
+	}
+	return false
+}
+
 var (
-	httpMode  bool
-	httpBind  string
-	ignored   bool
-	ignoreDot bool
-	sender    string
-	smtpMode  bool
-	smtpBind  string
-	subject   string
-	verbose   bool
+	httpMode    bool
+	httpBind    string
+	httpToken   string
+	ignored     bool
+	ignoreDot   bool
+	sender      string
+	smtpMode    bool
+	smtpBind    string
+	smtpDomains arrayDomains
+	subject     string
+	verbose     bool
 )
 
 func main() {
@@ -33,8 +56,10 @@ func main() {
 
 	flag.BoolVar(&httpMode, "http", false, "Enable HTTP server mode.")
 	flag.StringVar(&httpBind, "httpBind", "localhost:8080", "TCP address to HTTP listen on.")
+	flag.StringVar(&httpToken, "httpToken", "", "Use authorization token to receive mail (Token: header).")
 	flag.BoolVar(&smtpMode, "smtp", false, "Enable SMTP server mode.")
 	flag.StringVar(&smtpBind, "smtpBind", "localhost:25", "TCP or Unix address to SMTP listen on.")
+	flag.Var(&smtpDomains, "smtpDomain", "Domain of the sender from which mail is allowed (otherwise all domains). Can be repeated many times.")
 
 	flag.Parse()
 

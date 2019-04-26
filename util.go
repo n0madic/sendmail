@@ -30,3 +30,12 @@ func AddressListToSlice(list []*mail.Address) (slice []string) {
 	}
 	return
 }
+
+// GetDomainFromAddress extract domain from email address
+func GetDomainFromAddress(address string) string {
+	components := strings.Split(address, "@")
+	if len(components) == 2 {
+		return components[1]
+	}
+	return ""
+}

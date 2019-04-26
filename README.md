@@ -71,5 +71,11 @@ Use as HTTP service:
 ```
 $ sendmail -http
 
-$ curl -X POST --binary-data @mail.msg localhost:8080
+$ curl -X POST --data-binary @mail.msg localhost:8080
+```
+With authorization token:
+```
+$ sendmail -http -httpToken werf2t34cr243
+
+$ curl -X POST -H 'Token: werf2t34cr243' --data-binary @mail.msg localhost:8080
 ```

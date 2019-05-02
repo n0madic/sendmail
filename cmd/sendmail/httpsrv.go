@@ -38,7 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, err)
 		} else {
 			senderDomain := sendmail.GetDomainFromAddress(envelope.Header["From"][0])
-			if len(smtpDomains) > 0 && !smtpDomains.Contains(senderDomain) {
+			if len(senderDomains) > 0 && !senderDomains.Contains(senderDomain) {
 				w.WriteHeader(http.StatusUnauthorized)
 				log.Errorf("Attempt to unauthorized send with domain %s", senderDomain)
 				fmt.Fprint(w, "Unauthorized sender domain")

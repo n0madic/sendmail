@@ -34,17 +34,17 @@ func (d *arrayDomains) Contains(str string) bool {
 }
 
 var (
-	httpMode    bool
-	httpBind    string
-	httpToken   string
-	ignored     bool
-	ignoreDot   bool
-	sender      string
-	smtpMode    bool
-	smtpBind    string
-	smtpDomains arrayDomains
-	subject     string
-	verbose     bool
+	httpMode      bool
+	httpBind      string
+	httpToken     string
+	ignored       bool
+	ignoreDot     bool
+	sender        string
+	senderDomains arrayDomains
+	smtpMode      bool
+	smtpBind      string
+	subject       string
+	verbose       bool
 )
 
 func main() {
@@ -59,7 +59,7 @@ func main() {
 	flag.StringVar(&httpToken, "httpToken", "", "Use authorization token to receive mail (Token: header).")
 	flag.BoolVar(&smtpMode, "smtp", false, "Enable SMTP server mode.")
 	flag.StringVar(&smtpBind, "smtpBind", "localhost:25", "TCP or Unix address to SMTP listen on.")
-	flag.Var(&smtpDomains, "smtpDomain", "Domain of the sender from which mail is allowed (otherwise all domains). Can be repeated many times.")
+	flag.Var(&senderDomains, "senderDomain", "Domain of the sender from which mail is allowed (otherwise all domains). Can be repeated many times.")
 
 	flag.Parse()
 
@@ -111,7 +111,7 @@ func main() {
 		}
 
 		senderDomain := sendmail.GetDomainFromAddress(envelope.Header["From"][0])
-		if len(smtpDomains) > 0 && !smtpDomains.Contains(senderDomain) {
+		if len(senderDomains) > 0 && !senderDomains.Contains(senderDomain) {
 			log.Fatalf("Attempt to unauthorized send with domain %s", senderDomain)
 		}
 

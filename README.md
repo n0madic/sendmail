@@ -15,7 +15,7 @@ Download binaries from [release](https://github.com/n0madic/sendmail/releases) p
 Or install from source:
 
 ```
-go get -u https://github.com/n0madic/sendmail
+go get -u github.com/n0madic/sendmail/cmd/sendmail
 ```
 
 ## Help

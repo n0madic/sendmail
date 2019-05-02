@@ -99,6 +99,7 @@ func main() {
 		if len(body) == 0 {
 			log.Fatal("Empty message body")
 		}
+
 		envelope, err := sendmail.NewEnvelope(&sendmail.Config{
 			Sender:     sender,
 			Recipients: flag.Args(),
@@ -108,6 +109,12 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		senderDomain := sendmail.GetDomainFromAddress(envelope.Header["From"][0])
+		if len(smtpDomains) > 0 && !smtpDomains.Contains(senderDomain) {
+			log.Fatalf("Attempt to unauthorized send with domain %s", senderDomain)
+		}
+
 		errs := envelope.Send()
 		for result := range errs {
 			switch {

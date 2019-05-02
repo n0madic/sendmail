@@ -131,8 +131,10 @@ func main() {
 
 func getLogFields(fields sendmail.Fields) log.Fields {
 	logFields := log.Fields{}
-	for k, v := range fields {
-		logFields[k] = v
+	if verbose {
+		for k, v := range fields {
+			logFields[k] = v
+		}
 	}
 	return logFields
 }

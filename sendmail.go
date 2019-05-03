@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"os"
 	"os/user"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -112,14 +113,27 @@ func (e *Envelope) GenerateMessage() ([]byte, error) {
 	if len(e.Header) == 0 {
 		return nil, errors.New("Empty header")
 	}
+
 	buf := bytes.NewBuffer(nil)
-	for key, value := range e.Header {
-		buf.WriteString(key + ": " + strings.Join(value, ",") + "\r\n")
+	keys := make([]string, 0, len(e.Header))
+	for key := range e.Header {
+		keys = append(keys, key)
 	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		buf.WriteString(key + ": " + strings.Join(e.Header[key], ",") + "\r\n")
+	}
+	buf.WriteString("\r\n")
+
 	_, err := buf.ReadFrom(e.Body)
 	if err != nil {
 		return nil, err
 	}
-	buf.WriteString("\r\n")
+
+	if !bytes.HasSuffix(buf.Bytes(), []byte("\r\n")) {
+		buf.WriteString("\r\n")
+	}
+
 	return buf.Bytes(), nil
 }

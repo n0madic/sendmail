@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 )
 
+var portSMTP = "25"
+
 // SendLikeMTA message delivery directly, like Mail Transfer Agent.
 func (e *Envelope) SendLikeMTA() <-chan Result {
 	var successCount = new(int32)
@@ -27,22 +29,48 @@ func (e *Envelope) SendLikeMTA() <-chan Result {
 			wg.Add(1)
 			go func(domain string, addresses []string) {
 				defer wg.Done()
+				var hostList []string
 				mxrecords, err := net.LookupMX(domain)
 				if err != nil {
-					results <- Result{WarnLevel, err, "", Fields{
+					results <- Result{WarnLevel, err, "LookupMX", Fields{
+						"sender":     e.Header.Get("From"),
+						"domain":     domain,
+						"recipients": rcpts,
+					}}
+					// Fallback to A records
+					ips, err := net.LookupIP(domain)
+					if err != nil {
+						results <- Result{WarnLevel, err, "LookupIP", Fields{
+							"sender":     e.Header.Get("From"),
+							"domain":     domain,
+							"recipients": rcpts,
+						}}
+					} else {
+						for _, ip := range ips {
+							host := strings.TrimSuffix(ip.String(), ".")
+							hostList = append(hostList, host)
+						}
+					}
+				} else {
+					for _, mx := range mxrecords {
+						host := strings.TrimSuffix(mx.Host, ".")
+						hostList = append(hostList, host)
+					}
+				}
+				if len(hostList) == 0 {
+					results <- Result{ErrorLevel, errors.New("MX not found"), "Lookup", Fields{
 						"sender":     e.Header.Get("From"),
 						"domain":     domain,
 						"recipients": rcpts,
 					}}
 				} else {
-					for _, mx := range mxrecords {
-						host := strings.TrimSuffix(mx.Host, ".")
+					for _, host := range hostList {
 						fields := Fields{
 							"sender":     e.Header.Get("From"),
 							"mx":         host,
 							"recipients": rcpts,
 						}
-						err := smtp.SendMail(host+":25", nil,
+						err := smtp.SendMail(host+":"+portSMTP, nil,
 							e.Header.Get("From"),
 							addresses,
 							generatedBody)

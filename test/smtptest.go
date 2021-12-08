@@ -32,9 +32,9 @@ func (bkd *Backend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, e
 type Session struct{}
 
 // Mail check sender
-func (s *Session) Mail(from string) error {
+func (s *Session) Mail(from string, opts smtp.MailOptions) error {
 	if from != "sender@localhost" {
-		return fmt.Errorf("Unknow sender %s", from)
+		return fmt.Errorf("unknow sender %s", from)
 	}
 	return nil
 }
@@ -42,7 +42,7 @@ func (s *Session) Mail(from string) error {
 // Rcpt check recipients
 func (s *Session) Rcpt(to string) error {
 	if to != "recipient@localhost" {
-		return fmt.Errorf("Unknow recipient %s", to)
+		return fmt.Errorf("unknow recipient %s", to)
 	}
 	return nil
 }

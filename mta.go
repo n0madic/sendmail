@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 )
 
-var portSMTP = "25"
+var PortSMTP = "25"
 
 // SendLikeMTA message delivery directly, like Mail Transfer Agent.
 func (e *Envelope) SendLikeMTA() <-chan Result {
@@ -70,7 +70,7 @@ func (e *Envelope) SendLikeMTA() <-chan Result {
 							"mx":         host,
 							"recipients": rcpts,
 						}
-						err := smtp.SendMail(host+":"+portSMTP, nil,
+						err := smtp.SendMail(host+":"+PortSMTP, nil,
 							e.Header.Get("From"),
 							addresses,
 							generatedBody)
@@ -93,9 +93,9 @@ func (e *Envelope) SendLikeMTA() <-chan Result {
 			"total":   int32(len(mapDomains)),
 		}
 		if *successCount == 0 {
-			results <- Result{ErrorLevel, errors.New("Failed to deliver to all recipients"), "", fields}
+			results <- Result{ErrorLevel, errors.New("failed to deliver to all recipients"), "", fields}
 		} else if *successCount != int32(len(mapDomains)) {
-			results <- Result{ErrorLevel, errors.New("Failed to deliver to some recipients"), "", fields}
+			results <- Result{ErrorLevel, errors.New("failed to deliver to some recipients"), "", fields}
 		}
 		close(results)
 	}()

@@ -87,7 +87,7 @@ func NewEnvelope(config *Config) (Envelope, error) {
 	}
 
 	if len(recipients) == 0 {
-		return Envelope{}, errors.New("No recipients listed")
+		return Envelope{}, errors.New("no recipients listed")
 	}
 
 	return Envelope{msg, recipients}, nil
@@ -111,7 +111,7 @@ func (e *Envelope) Send() <-chan Result {
 // GenerateMessage create body from mail.Message
 func (e *Envelope) GenerateMessage() ([]byte, error) {
 	if len(e.Header) == 0 {
-		return nil, errors.New("Empty header")
+		return nil, errors.New("empty header")
 	}
 
 	buf := bytes.NewBuffer(nil)

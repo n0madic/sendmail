@@ -1,4 +1,4 @@
-package sendmail
+package sendmail_test
 
 import (
 	"bytes"
@@ -6,30 +6,32 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/n0madic/sendmail"
 )
 
 type testData struct {
-	initial  Config
-	expected Config
+	initial  sendmail.Config
+	expected sendmail.Config
 }
 
 var testConfigs = []*testData{
-	&testData{
-		initial: Config{
+	{
+		initial: sendmail.Config{
 			Sender:     "sender@localhost",
 			Recipients: []string{"recipient@localhost"},
 			Subject:    "subject",
 			Body:       []byte("TEST"),
 		},
-		expected: Config{
+		expected: sendmail.Config{
 			Sender:     "sender@localhost",
 			Recipients: []string{"recipient@localhost"},
 			Subject:    "subject",
 			Body:       []byte("TEST"),
 		},
 	},
-	&testData{
-		initial: Config{
+	{
+		initial: sendmail.Config{
 			Sender:     "",
 			Recipients: []string{},
 			Subject:    "",
@@ -40,7 +42,7 @@ Subject: subject
 TEST`,
 			),
 		},
-		expected: Config{
+		expected: sendmail.Config{
 			Sender:     "sender@localhost",
 			Recipients: []string{"recipient@localhost"},
 			Subject:    "subject",
@@ -51,7 +53,7 @@ TEST`,
 
 func TestNewEnvelope(t *testing.T) {
 	for _, config := range testConfigs {
-		envelope, err := NewEnvelope(&config.initial)
+		envelope, err := sendmail.NewEnvelope(&config.initial)
 		if err != nil {
 			t.Error(err)
 			return
@@ -94,7 +96,7 @@ func TestGenerateMessage(t *testing.T) {
 		114, 101, 99, 105, 112, 105, 101, 110, 116, 64, 108, 111, 99, 97, 108, 104, 111, 115, 116, 13,
 		10, 13, 10, 84, 69, 83, 84, 13, 10}
 
-	envelope, err := NewEnvelope(&testConfigs[0].initial)
+	envelope, err := sendmail.NewEnvelope(&testConfigs[0].initial)
 	if err != nil {
 		t.Error(err)
 		return

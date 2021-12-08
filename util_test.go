@@ -1,10 +1,12 @@
-package sendmail
+package sendmail_test
 
 import (
 	"bytes"
 	"net/mail"
 	"reflect"
 	"testing"
+
+	"github.com/n0madic/sendmail"
 )
 
 func TestGetDumbMessage(t *testing.T) {
@@ -14,12 +16,12 @@ func TestGetDumbMessage(t *testing.T) {
 	}
 	expectedBody := []byte("TEST\r\n")
 
-	_, err := GetDumbMessage("", []string{}, []byte{})
-	if err.Error() != "Empty recipients list" {
+	_, err := sendmail.GetDumbMessage("", []string{}, []byte{})
+	if err.Error() != "empty recipients list" {
 		t.Error("Expected empty recipients list")
 	}
 
-	msg, err := GetDumbMessage("sender@localhost", []string{"user@example.com"}, []byte("TEST"))
+	msg, err := sendmail.GetDumbMessage("sender@localhost", []string{"user@example.com"}, []byte("TEST"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -39,7 +41,7 @@ func TestAddressListToSlice(t *testing.T) {
 	expected := []string{"user@example.com"}
 
 	list := []*mail.Address{{Address: "user@example.com"}}
-	slice := AddressListToSlice(list)
+	slice := sendmail.AddressListToSlice(list)
 	if !reflect.DeepEqual(slice, expected) {
 		t.Error("Expected", expected, "got", slice)
 	}
@@ -48,12 +50,12 @@ func TestAddressListToSlice(t *testing.T) {
 func TestGetDomainFromAddress(t *testing.T) {
 	expected := "example.com"
 
-	domain := GetDomainFromAddress("user@example.com")
+	domain := sendmail.GetDomainFromAddress("user@example.com")
 	if domain != expected {
 		t.Error("Expected", expected, "got", domain)
 	}
 
-	if GetDomainFromAddress("example.com") != "" {
+	if sendmail.GetDomainFromAddress("example.com") != "" {
 		t.Error("Expected empty string")
 	}
 }

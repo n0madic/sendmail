@@ -10,7 +10,7 @@ import (
 // GetDumbMessage create simple mail.Message from raw data
 func GetDumbMessage(sender string, recipients []string, body []byte) (*mail.Message, error) {
 	if len(recipients) == 0 {
-		return nil, errors.New("Empty recipients list")
+		return nil, errors.New("empty recipients list")
 	}
 	buf := bytes.NewBuffer(nil)
 	if sender != "" {

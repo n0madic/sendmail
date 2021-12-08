@@ -32,11 +32,11 @@ type Session struct {
 }
 
 // Mail save sender
-func (s *Session) Mail(from string) error {
+func (s *Session) Mail(from string, opts smtp.MailOptions) error {
 	senderDomain := sendmail.GetDomainFromAddress(from)
 	if len(senderDomains) > 0 && !senderDomains.Contains(senderDomain) {
 		log.Errorf("Attempt to unauthorized send with domain %s", senderDomain)
-		return fmt.Errorf("Unauthorized sender domain %s", senderDomain)
+		return fmt.Errorf("unauthorized sender domain %s", senderDomain)
 	}
 	s.From = from
 	return nil

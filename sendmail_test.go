@@ -90,11 +90,7 @@ func TestNewEnvelope(t *testing.T) {
 }
 
 func TestGenerateMessage(t *testing.T) {
-	expectedMessage := []byte{70, 114, 111, 109, 58, 32, 115, 101, 110, 100, 101, 114, 64, 108, 111, 99,
-		97, 108, 104, 111, 115, 116, 13, 10, 83, 117, 98, 106, 101, 99, 116, 58, 32, 61, 63, 85, 84, 70,
-		45, 56, 63, 66, 63, 99, 51, 86, 105, 97, 109, 86, 106, 100, 65, 61, 61, 13, 10, 84, 111, 58, 32,
-		114, 101, 99, 105, 112, 105, 101, 110, 116, 64, 108, 111, 99, 97, 108, 104, 111, 115, 116, 13,
-		10, 13, 10, 84, 69, 83, 84, 13, 10}
+	expectedMessage := "From: sender@localhost\r\nSubject: =?UTF-8?B?c3ViamVjdA==\r\nTo: recipient@localhost\r\n\r\nTEST\r\n"
 
 	envelope, err := sendmail.NewEnvelope(&testConfigs[0].initial)
 	if err != nil {
@@ -106,7 +102,7 @@ func TestGenerateMessage(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if !reflect.DeepEqual(message, expectedMessage) {
-		t.Error("Expected", expectedMessage, "got", message)
+	if !bytes.Equal(message, []byte(expectedMessage)) {
+		t.Errorf("EXPECTED:\n%s\nGOT:\n%s", expectedMessage, message)
 	}
 }

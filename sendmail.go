@@ -23,12 +23,14 @@ type Config struct {
 	Recipients []string
 	Subject    string
 	Body       []byte
+	PortSMTP   string
 }
 
 // Envelope of message
 type Envelope struct {
 	*mail.Message
 	Recipients []string
+	PortSMTP   string
 }
 
 // NewEnvelope return new message envelope
@@ -41,6 +43,10 @@ func NewEnvelope(config *Config) (Envelope, error) {
 		if err != nil {
 			return Envelope{}, err
 		}
+	}
+
+	if config.PortSMTP == "" {
+		config.PortSMTP = "25"
 	}
 
 	if config.Sender != "" {
@@ -90,7 +96,7 @@ func NewEnvelope(config *Config) (Envelope, error) {
 		return Envelope{}, errors.New("no recipients listed")
 	}
 
-	return Envelope{msg, recipients}, nil
+	return Envelope{msg, recipients, config.PortSMTP}, nil
 }
 
 // Send message.

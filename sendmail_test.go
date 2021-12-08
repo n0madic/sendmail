@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/n0madic/sendmail"
+	"github.com/n0madic/sendmail/test"
 )
 
 type testData struct {
@@ -22,6 +23,7 @@ var testConfigs = []*testData{
 			Recipients: []string{"recipient@localhost"},
 			Subject:    "subject",
 			Body:       []byte("TEST"),
+			PortSMTP:   test.PortSMTP,
 		},
 		expected: sendmail.Config{
 			Sender:     "sender@localhost",
@@ -41,6 +43,7 @@ Subject: subject
 
 TEST`,
 			),
+			PortSMTP: test.PortSMTP,
 		},
 		expected: sendmail.Config{
 			Sender:     "sender@localhost",

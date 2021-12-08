@@ -7,9 +7,6 @@ import (
 	"github.com/n0madic/sendmail/test"
 )
 
-func init() {
-	sendmail.PortSMTP = test.PortSMTP
-}
 func TestSendLikeMTA(t *testing.T) {
 	go test.StartSMTP()
 

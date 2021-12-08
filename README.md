@@ -1,4 +1,7 @@
 # sendmail
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/n0madic/sendmail.svg)](https://pkg.go.dev/github.com/n0madic/sendmail)
+
 Standalone drop-in replacement for sendmail with direct send
 
 ## Features

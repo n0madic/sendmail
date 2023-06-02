@@ -13,26 +13,25 @@ import (
 // The Backend implements SMTP server methods.
 type Backend struct{}
 
+func (bkd *Backend) NewSession(_ *smtp.Conn) (smtp.Session, error) {
+	return &Session{}, nil
+}
+
 var once sync.Once
 
 // PortSMTP for tests
 const PortSMTP = "2525"
 
-// Login handles a login command with username and password.
-func (bkd *Backend) Login(state *smtp.ConnectionState, username, password string) (smtp.Session, error) {
-	return &Session{}, nil
-}
-
-// AnonymousLogin allowed
-func (bkd *Backend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, error) {
-	return &Session{}, nil
-}
-
 // A Session is returned after successful login.
 type Session struct{}
 
+// AuthPlain check stub
+func (s *Session) AuthPlain(username, password string) error {
+	return nil
+}
+
 // Mail check sender
-func (s *Session) Mail(from string, opts smtp.MailOptions) error {
+func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	if from != "sender@localhost" {
 		return fmt.Errorf("unknow sender %s", from)
 	}

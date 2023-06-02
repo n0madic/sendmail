@@ -15,13 +15,7 @@ import (
 // The Backend implements SMTP server methods.
 type Backend struct{}
 
-// Login handles a login command with username and password.
-func (bkd *Backend) Login(state *smtp.ConnectionState, username, password string) (smtp.Session, error) {
-	return &Session{}, nil
-}
-
-// AnonymousLogin allowed
-func (bkd *Backend) AnonymousLogin(state *smtp.ConnectionState) (smtp.Session, error) {
+func (bkd *Backend) NewSession(_ *smtp.Conn) (smtp.Session, error) {
 	return &Session{}, nil
 }
 
@@ -31,8 +25,13 @@ type Session struct {
 	To   []string
 }
 
+// AuthPlain check stub
+func (s *Session) AuthPlain(username, password string) error {
+	return nil
+}
+
 // Mail save sender
-func (s *Session) Mail(from string, opts smtp.MailOptions) error {
+func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 	senderDomain := sendmail.GetDomainFromAddress(from)
 	if len(senderDomains) > 0 && !senderDomains.Contains(senderDomain) {
 		log.Errorf("Attempt to unauthorized send with domain %s", senderDomain)

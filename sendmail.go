@@ -96,6 +96,10 @@ func NewEnvelope(config *Config) (Envelope, error) {
 		return Envelope{}, errors.New("no recipients listed")
 	}
 
+	if msg.Header.Get("Message-ID") == "" {
+		msg.Header["Message-ID"] = []string{generateMessageID(GetDomainFromAddress(recipients[0]))}
+	}
+
 	return Envelope{msg, recipients, config.PortSMTP}, nil
 }
 

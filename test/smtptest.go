@@ -39,7 +39,7 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 }
 
 // Rcpt check recipients
-func (s *Session) Rcpt(to string) error {
+func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
 	if to != "recipient@localhost" {
 		return fmt.Errorf("unknow recipient %s", to)
 	}

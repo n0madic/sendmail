@@ -42,7 +42,7 @@ func (s *Session) Mail(from string, opts *smtp.MailOptions) error {
 }
 
 // Rcpt save recipients
-func (s *Session) Rcpt(to string) error {
+func (s *Session) Rcpt(to string, opts *smtp.RcptOptions) error {
 	s.To = strings.Split(to, ",")
 	return nil
 }

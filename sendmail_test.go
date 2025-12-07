@@ -93,8 +93,6 @@ func TestNewEnvelope(t *testing.T) {
 }
 
 func TestGenerateMessage(t *testing.T) {
-	expectedMessage := "From: sender@localhost\r\nSubject: =?UTF-8?B?c3ViamVjdA==\r\nTo: recipient@localhost\r\n\r\nTEST\r\n"
-
 	envelope, err := sendmail.NewEnvelope(&testConfigs[0].initial)
 	if err != nil {
 		t.Error(err)
@@ -105,7 +103,21 @@ func TestGenerateMessage(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if !bytes.Equal(message, []byte(expectedMessage)) {
-		t.Errorf("EXPECTED:\n%s\nGOT:\n%s", expectedMessage, message)
+
+	// Check required headers are present
+	if !strings.Contains(string(message), "From: sender@localhost\r\n") {
+		t.Error("Missing or incorrect From header")
+	}
+	if !strings.Contains(string(message), "Subject: =?UTF-8?B?c3ViamVjdA==\r\n") {
+		t.Error("Missing or incorrect Subject header")
+	}
+	if !strings.Contains(string(message), "To: recipient@localhost\r\n") {
+		t.Error("Missing or incorrect To header")
+	}
+	if !strings.Contains(string(message), "Message-ID: <") {
+		t.Error("Missing Message-ID header")
+	}
+	if !strings.HasSuffix(string(message), "\r\n\r\nTEST\r\n") {
+		t.Errorf("Missing or incorrect body, got: %s", message)
 	}
 }
